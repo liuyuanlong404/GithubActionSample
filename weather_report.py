@@ -9,11 +9,40 @@ appSecret = os.environ.get("APP_SECRET")
 openIds = os.environ.get("OPEN_ID").split(",")
 weather_template_id = os.environ.get("TEMPLATE_ID")
 
+
+# 🌤️ 获取天气函数
+def get_weather(city):
+    # 西安的经纬度
+    city_coords = {
+        "西安": {"latitude": 34.3416, "longitude": 108.9398}
+    }
+    coords = city_coords.get(city)
+    if not coords:
+        return None
+
+    url = f"https://api.open-meteo.com/v1/forecast?latitude={coords['latitude']}&longitude={coords['longitude']}&current_weather=true"
+    response = requests.get(url)
+    data = response.json()
+
+    if "current_weather" in data:
+        weather = data["current_weather"]
+        return {
+            "city": city,
+            "temperature": f"{weather['temperature']}°C",
+            "weather": str(weather['weathercode']),
+            "wind_speed": f"{weather['windspeed']} km/h"
+        }
+    return None
+
+
+# 🌬️ 获取 access token
 def get_access_token():
     url = f'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={appID}&secret={appSecret}'
     response = requests.get(url).json()
     return response.get('access_token')
 
+
+# 📬 发送模板消息
 def send_weather(access_token, open_id, weather):
     today_str = datetime.date.today().strftime("%Y年%m月%d日")
     body = {
@@ -33,6 +62,8 @@ def send_weather(access_token, open_id, weather):
     response = requests.post(url, json.dumps(body))
     print(response.text)
 
+
+# 🌈 主程序
 def weather_report(city):
     access_token = get_access_token()
     weather = get_weather(city)
@@ -41,6 +72,7 @@ def weather_report(city):
             send_weather(access_token, open_id, weather)
     else:
         print(f"无法获取 {city} 的天气信息")
+
 
 if __name__ == '__main__':
     weather_report("西安")
